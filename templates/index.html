@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>PI Box</title> 
+		<link href="css/ui-darkness/jquery-ui-1.10.3.custom.css" rel="stylesheet"/>
+		<link href="css/pibox.css" rel="stylesheet" />
+		<script type='text/javascript' src='js/jquery-2.0.1.min.js'></script>
+		<!-- <script type='text/javascript' src='js/jquery-1.9.1.js'></script> -->
+		<script type='text/javascript' src="js/jquery-ui-1.10.3.custom.min.js"></script>
+		<script type='text/javascript' src='js/knockout-2.2.1.js'></script>
+		<script type='text/javascript' src='js/knockout.mapping-2.4.1.js'></script>		
+		<script type='text/javascript' src='js/knockout.command.js'></script>		
+	</head>
+	<body>
+		<div class="title">PI Box</div>
+		<div class="divider">Now Playing</div>
+		<div>
+			<div id="global-controls">
+				<div id="global-controls-row">
+					<div class="global-buttons">
+						<span class="ui-icon ui-icon-volume-off"></span>
+					</div>
+					<div id="volume-control">
+						<div id="volume" data-bind="slider: mixer_state.volume, sliderOptions : {min:0, max:100, value:0, step:1 }"></div>		
+					</div>
+					<div class="global-buttons">
+						<span class="ui-icon ui-icon-volume-on"></span>
+					</div>
+				</div>
+			</div>
+			
+			<div id="playing-display-name">
+				<div id="display-name-inside"> 
+					<span id="display-name" data-bind="text : player_state.display_name"></span>
+					<div class="global-buttons">
+						<button id="stop-play" 
+							data-bind="button:{}, buttonOptions :{ icons:{primary : 'ui-icon-stop'}, text : false}, enable : player_state.can_stop, click: player_state.stop_radio">
+							Stop
+						</button>
+					</div>
+				</div>
+			</div>
+			
+			<div class="playlist-container">
+				<div class="playlist" data-bind="template: {name : 'playlistTemplate', foreach : player_state.playlist}"></div>
+			</div>
+			
+		</div>
+		<div class="divider">Favorites</div>
+		<div class="favorite-list-container">
+			<div class="favorite-list" data-bind="template: {name : 'favoritTemplate', foreach : favorites.radios}"></div>
+		</div>
+
+		<div id="reload-dialog" title="Error" style="display: none">
+			<p>Error occured. Press the button to reload the page.</p>
+		</div>
+	</body>
+	
+	<script type="text/html" id="playlistTemplate">
+		<div class="playlist-row">
+			<div class="playlist-timestamp" data-bind="text: timestamp"></div>
+			<div class="playlist-title" data-bind="text: title"></div>
+		</div>
+	</script>		
+	
+	<script type="text/html" id="favoritTemplate">
+		<div class="favorite-row" data-bind="css : { 'favorite-row-playing' : is_playing() }">
+			<div class="favorite-controls" >
+				<span class="ui-icon ui-icon-star"></span>
+			</div>
+			<div class="favorite-display-name"  >
+				<span data-bind="text: display_name"></span>
+			</div>
+			<div class="favorite-controls" >
+				<button data-bind="button:{},  buttonOptions :{ icons:{primary : 'ui-icon-play'}, text : false}, click : play, disable : is_playing">
+					Play
+				</button>
+			</div>
+		</div>
+	</script>	
+	
+	
+	<script type="text/javascript">
+			
+		ko.bindingHandlers.button = {
+			init: function (element, valueAccessor, allBindingsAccessor) {
+				var options = allBindingsAccessor().buttonOptions || {};
+				$(element).button(options);
+
+				ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+					$(element).button("destroy");
+				});
+			}
+		};		
+		
+		ko.bindingHandlers.slider = {
+		  init: function (element, valueAccessor, allBindingsAccessor) {
+			var options = allBindingsAccessor().sliderOptions || {};
+			$(element).slider(options);
+			// ko.utils.registerEventHandler(element, "change", function (event, ui) {
+			//	var observable = valueAccessor();
+			//	observable(ui.value);
+			//});
+			ko.utils.domNodeDisposal.addDisposeCallback(element, function () {
+				$(element).slider("destroy");
+			});
+			 ko.utils.registerEventHandler(element, "slide", function (event, ui) {
+				var observable = valueAccessor();
+				observable(ui.value);
+			});			
+			// $('.ui-slider-handle').draggable();
+		  },
+		  update: function (element, valueAccessor) {
+			var value = ko.utils.unwrapObservable(valueAccessor());
+			if (isNaN(value)) value = 0;
+			$(element).slider("value", value);
+		  }
+		};		
+		
+		function PlayerState() {
+			this.revision = ko.observable(0);
+			this.id = ko.observable();
+			this.display_name = ko.observable("");
+			this.stream_url = ko.observable("");
+			this.playlist = ko.observableArray();
+			this.can_stop = ko.computed(function() {
+				return this.id() != null
+			}, this);
+			this.stop_radio = function(model, args) {
+				$(args.currentTarget).removeClass("ui-state-hover");
+				$.ajax( 
+					{
+						url : '/stopradio',
+						type : 'post', 
+						dataType : 'json'
+					}
+				);
+			};		
+		}
+
+		function MixerState() {
+			this.revision = ko.observable(0);
+			this.volume = ko.observable(50);
+			this.sent_volume = this.volume();
+			this.sent_revision = 0;
+			this.updating = false;
+			this.sending = false;
+			var self = this;
+			
+			function updateVolume() {
+				if (!self.sending) {
+					self.sending = true;
+					self.sent_volume = self.volume();
+					self.sent_revision = self.revision();
+					$.ajax( 
+						{
+							url : '/setvolume',
+							data : { 'revision' : self.sent_revision, 'volume' : self.sent_volume },
+							type : 'post', 
+							dataType : 'json',
+							success: function(data) {
+								self.sending = false;
+								
+								if (self.sent_volume != self.volume() || self.sent_revision < self.revision()) {
+									updateVolume();
+								}
+							}
+						}
+					);
+				} 
+			}
+			
+			this.volume.subscribe(function(volume) {
+				if (!self.updating) {			
+					self.revision(self.revision() + 1);
+					updateVolume();
+				}
+			});
+		}
+		
+		var viewModel = {
+			favorites : ko.mapping.fromJS({
+				revision : 0,
+				radios : []
+			}),
+			player_state : new PlayerState(),
+			mixer_state : new MixerState(),
+			updateRequestStart : Date(),
+		};		
+			
+		var Radio = function(radio) {
+			ko.mapping.fromJS(radio, {}, this);
+			
+			this.play = function (model, args) {
+				$(args.currentTarget).removeClass("ui-state-hover");
+				$.ajax( 
+					{
+						url : '/playradio',
+						data : { id : this.id() },
+						type : 'post', 
+						dataType : 'json'
+					}
+				);
+			}
+			
+			this.is_playing = ko.computed(function() {
+				return this.id() === viewModel.player_state.id()
+			}, this);
+		}
+				
+		var favoriteMapping = {
+			'radios' : {
+				key : function (radio) {
+						return radio.id;
+					},
+					
+				create : function (options) {
+						return new Radio(options.data);
+					}
+			}
+		};
+		
+		var playlistMapping = {
+			key : function (item) {
+					return item.timestamp;
+				},
+		};
+		
+		
+		function updateState() {
+			viewModel.updateRequestStart = new Date();
+			$.ajax(
+			  {
+				url : '/update',
+				dataType : 'json',
+				data : { 
+					'favorites': viewModel.favorites.revision(), 
+					'player_state' : viewModel.player_state.revision(),
+					'mixer_state' : viewModel.mixer_state.revision()
+				},
+				type : 'post', 
+				success : function(data) {
+					$(".title").removeClass("red").removeClass("yellow");
+
+					if (data.data.favorites.revision > viewModel.favorites.revision()) {
+						ko.mapping.fromJS(data.data.favorites, favoriteMapping, viewModel.favorites);
+					}
+					
+					if (data.data.player_state.revision > viewModel.player_state.revision()) {				
+						if (data.data.player_state.radio) {
+							var radio = data.data.player_state.radio;
+							viewModel.player_state.id(radio.id);
+							viewModel.player_state.display_name(radio.display_name);
+							viewModel.player_state.stream_url(radio.stream_url);
+						} else {
+							viewModel.player_state.id(undefined);
+							viewModel.player_state.display_name("");
+							viewModel.player_state.stream_url("");
+						}
+						
+						ko.mapping.fromJS(data.data.player_state.playlist, playlistMapping, viewModel.player_state.playlist);
+						viewModel.player_state.revision(data.data.player_state.revision);
+					}
+					
+					if (data.data.mixer_state.revision > viewModel.mixer_state.revision()) {
+						viewModel.mixer_state.updating = true;
+						viewModel.mixer_state.revision(data.data.mixer_state.revision);
+						viewModel.mixer_state.volume(data.data.mixer_state.volume);
+						viewModel.mixer_state.updating = false;
+					}
+					
+					updateState();
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					var timeDiff = (new Date()) - viewModel.updateRequestStart;
+					$(".title").addClass("red");
+					
+					if (timeDiff > 10000) {
+						updateState();
+					} else {
+						$(".title").removeClass("red").addClass("yellow");
+						setTimeout( updateState, 30000);
+					}
+					
+					// $("#reload-dialog").dialog({
+					// 	dialogClass: "no-close",
+					// 	buttons : [ 
+					// 		{
+					// 			text: "Reload",
+					// 			click : function() {
+					// 				$("#reload-dialog").dialog("close");
+					// 				updateState();
+					// 				// location.reload();
+					// 			}
+					// 		}
+					// 	],
+					// });
+				},					
+			  }
+			);
+		}
+		
+		
+		function updateFavorites() {
+			$.ajax(
+			  {
+				url : '/favorites',
+				dataType : 'json',
+				data : { 'revision': viewModel.favorites.revision() },
+				type : 'post', 
+				success : function(data) {
+					ko.mapping.fromJS(data.data, favoriteMapping, viewModel.favorites);
+					updateFavorites();
+				}
+			  }
+			);
+		}
+
+		function updatePlayerState() {
+			$.ajax(
+			  {
+				url : '/playerstate',
+				dataType : 'json',
+				type : 'post', 
+				data : { 'revision' : viewModel.player_state.revision() },
+				success : function(data) {
+					if (data.data.revision > viewModel.player_state.revision()) {				
+						if (data.data.radio) {
+							viewModel.player_state.id(data.data.radio.id);
+							viewModel.player_state.display_name(data.data.radio.display_name);
+							viewModel.player_state.stream_url(data.data.radio.stream_url);
+						} else {
+							viewModel.player_state.id(undefined);
+							viewModel.player_state.display_name("");
+							viewModel.player_state.stream_url("");
+						}
+						
+						ko.mapping.fromJS(data.data.playlist, playlistMapping, viewModel.player_state.playlist);
+						viewModel.player_state.revision(data.data.revision);
+					}
+					
+					updatePlayerState();
+				}
+			  }
+			);
+		}
+		
+		function updateMixerState() {
+			$.ajax(
+			  {
+				url : '/mixerstate',
+				dataType : 'json',
+				type : 'post', 
+				data : { 'revision' : viewModel.mixer_state.revision() },
+				success : function(data) {			
+					if (data.data.revision > viewModel.mixer_state.revision()) {
+						if (viewModel.mixer_state.revision() < data.data.revision) {
+							viewModel.mixer_state.updating = true;
+							viewModel.mixer_state.revision(data.data.revision);
+							viewModel.mixer_state.volume(data.data.volume);
+							viewModel.mixer_state.updating = false;
+						}
+					}
+					
+					updateMixerState();
+				}
+			  }
+			);
+		}
+		
+		updateState();
+		// updateFavorites();
+		// updatePlayerState();
+		// updateMixerState();
+		ko.applyBindings(viewModel)
+	
+	</script>
+</html>
