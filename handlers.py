@@ -13,39 +13,6 @@ class Index(tornado.web.RequestHandler):
         loader = tornado.template.Loader(path + "/templates")
         self.write(loader.load("index.html").generate())       
         
-class GetState(tornado.web.RequestHandler):
-    def initialize(self, state):
-        self.state = state
-
-    @tornado.web.asynchronous
-    def post(self):
-        revision = long(self.get_argument("revision"));
-        # print 'Get state ' + str(revision) + ' of ' + str(type(self.state))
-        
-        if not self.state.wait_for_update(revision, self.on_state_update):
-            tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0, 120), lambda:self.on_timeout(revision))
-        
-    def on_timeout(self, revision):
-        if self.request.connection.stream.closed():
-            return
-        if self.state.cancel_wait(self.on_state_update):
-            # Closed client connection
-            response = Response()
-            response.data = dict(revision = revision) 
-            self.finish(ResponseJSONEncoder().encode(response))
-        
-    def on_state_update(self, data):        
-        # Closed client connection
-        if self.request.connection.stream.closed():
-            return
-        # print 'on_state_update ' + str(data)
-        response = Response()
-        response.data = data 
-        self.finish(ResponseJSONEncoder().encode(response))
-
-    def on_connection_close(self):
-        self.state.cancel_wait(self.on_state_update)    
-
 class GetMultiState(tornado.web.RequestHandler):
     def initialize(self, states):
         self.states = states
@@ -142,9 +109,7 @@ class PlayRadio(tornado.web.RequestHandler):
             else:           
                 print 'Play ' + radio.display_name
                 Mplayer.start(radio)
-                # state.player_state.set_radio(radio)
-                # mplayer = MplayerProcess("Radio", description, streamUrl)
-                # Mplayer.play(mplayer)
+                
         except Exception, err:
             err_msg = str(err)
             errNum = ERR_NUM_PLAY_RADIO_STATION_FAILED

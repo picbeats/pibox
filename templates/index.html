@@ -299,79 +299,8 @@
 			  }
 			);
 		}
-		
-		
-		function updateFavorites() {
-			$.ajax(
-			  {
-				url : '/favorites',
-				dataType : 'json',
-				data : { 'revision': viewModel.favorites.revision() },
-				type : 'post', 
-				success : function(data) {
-					ko.mapping.fromJS(data.data, favoriteMapping, viewModel.favorites);
-					updateFavorites();
-				}
-			  }
-			);
-		}
-
-		function updatePlayerState() {
-			$.ajax(
-			  {
-				url : '/playerstate',
-				dataType : 'json',
-				type : 'post', 
-				data : { 'revision' : viewModel.player_state.revision() },
-				success : function(data) {
-					if (data.data.revision > viewModel.player_state.revision()) {				
-						if (data.data.radio) {
-							viewModel.player_state.id(data.data.radio.id);
-							viewModel.player_state.display_name(data.data.radio.display_name);
-							viewModel.player_state.stream_url(data.data.radio.stream_url);
-						} else {
-							viewModel.player_state.id(undefined);
-							viewModel.player_state.display_name("");
-							viewModel.player_state.stream_url("");
-						}
-						
-						ko.mapping.fromJS(data.data.playlist, playlistMapping, viewModel.player_state.playlist);
-						viewModel.player_state.revision(data.data.revision);
-					}
-					
-					updatePlayerState();
-				}
-			  }
-			);
-		}
-		
-		function updateMixerState() {
-			$.ajax(
-			  {
-				url : '/mixerstate',
-				dataType : 'json',
-				type : 'post', 
-				data : { 'revision' : viewModel.mixer_state.revision() },
-				success : function(data) {			
-					if (data.data.revision > viewModel.mixer_state.revision()) {
-						if (viewModel.mixer_state.revision() < data.data.revision) {
-							viewModel.mixer_state.updating = true;
-							viewModel.mixer_state.revision(data.data.revision);
-							viewModel.mixer_state.volume(data.data.volume);
-							viewModel.mixer_state.updating = false;
-						}
-					}
-					
-					updateMixerState();
-				}
-			  }
-			);
-		}
-		
+			
 		updateState();
-		// updateFavorites();
-		// updatePlayerState();
-		// updateMixerState();
 		ko.applyBindings(viewModel)
 	
 	</script>
