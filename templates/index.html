@@ -50,6 +50,13 @@
 		<div class="favorite-list-container">
 			<div class="favorite-list" data-bind="template: {name : 'favoritTemplate', foreach : favorites.radios}"></div>
 		</div>
+		<div class="divider">
+			<input id="input-search" type="text"/>
+			<button id="button-search" data-bind="button:{}, buttonOptions :{ icons:{primary : 'ui-icon-search'}, text : false}, click : search ">Search</button>
+		</div>
+		<div class="favorite-list-container">
+			<div class="favorite-list" data-bind="template: {name : 'favoritTemplate', foreach : search_radios}"></div>
+		</div>
 
 		<div id="reload-dialog" title="Error" style="display: none">
 			<p>Error occured. Press the button to reload the page.</p>
@@ -135,7 +142,7 @@
 						dataType : 'json'
 					}
 				);
-			};		
+			};
 		}
 
 		function MixerState() {
@@ -178,6 +185,34 @@
 			});
 		}
 		
+		var favoriteMapping = {
+			'radios' : {
+				key : function (radio) {
+						return radio.id;
+					},
+					
+				create : function (options) {
+						return new Radio(options.data);
+					}
+			}
+		};
+
+		var searchMapping = {
+			key : function (radio) {
+					return radio.id;
+				},
+				
+			create : function (options) {
+					return new SearchRadio(options.data);
+				}
+		};
+
+		var playlistMapping = {
+			key : function (item) {
+					return item.timestamp;
+				},
+		};
+		
 		var viewModel = {
 			favorites : ko.mapping.fromJS({
 				revision : 0,
@@ -186,6 +221,19 @@
 			player_state : new PlayerState(),
 			mixer_state : new MixerState(),
 			updateRequestStart : Date(),
+			search_radios : ko.observableArray(),
+			search : function() {
+					$.ajax( 
+						{
+							url : '/search/'+ encodeURIComponent($('input[id="input-search"]').val()),
+							type : 'get', 
+							dataType : 'json',
+							success: function(data) {
+								ko.mapping.fromJS(data.data, searchMapping, viewModel.search_radios);
+							}
+						}
+					);
+			}
 		};		
 			
 		var Radio = function(radio) {
@@ -207,24 +255,29 @@
 				return this.id() === viewModel.player_state.id()
 			}, this);
 		}
-				
-		var favoriteMapping = {
-			'radios' : {
-				key : function (radio) {
-						return radio.id;
-					},
-					
-				create : function (options) {
-						return new Radio(options.data);
-					}
-			}
-		};
 		
-		var playlistMapping = {
-			key : function (item) {
-					return item.timestamp;
-				},
-		};
+		
+		var SearchRadio = function(radio) {
+			ko.mapping.fromJS(radio, {}, this);
+			
+			this.play = function (model, args) {
+				$(args.currentTarget).removeClass("ui-state-hover");
+				$.ajax( 
+					{
+						url : '/playsearch',
+						data : { id : this.id() },
+						type : 'post', 
+						dataType : 'json'
+					}
+				);
+			}
+			
+			this.is_playing = ko.computed(function() {
+				return this.id() === viewModel.player_state.id()
+			}, this);
+		}
+		
+				
 		
 		
 		function updateState() {

@@ -16,6 +16,8 @@ ERR_NUM_STOP_RADIO_STATION_FAILED = 5
 
 ERR_NUM_SET_VOLUME_FAILED = 6
 
+ERR_NUM_SEARCH_FAILED = 7
+
 class Response:
     def __init__(self, error_code=ERR_NUM_OK, error_message=ERR_MSG_OK, data=None):
         self.error_code = error_code

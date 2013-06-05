@@ -3,9 +3,12 @@ import tornado.ioloop
 import tornado.template
 import datetime
 import logging
+import urllib
+import ast
 from common import *
 from state import *
 from mplayer import *
+from radiobrowser import *
 
 class Index(tornado.web.RequestHandler):
     def get(self):
@@ -26,9 +29,9 @@ class GetMultiState(tornado.web.RequestHandler):
     def post(self):
         for key in self.states.keys():
             self.lock.acquire()
-            callback = lambda data, key_closure=key: self.on_state_update(key_closure, data)
-            revision = long(self.get_argument(key))
             try:           
+                callback = lambda data, key_closure=key: self.on_state_update(key_closure, data)
+                revision = long(self.get_argument(key))
                 self.results[key] = { 'revision' : revision }
                 self.callbacks[key] = callback
             finally:
@@ -142,6 +145,43 @@ class SetVolume(tornado.web.RequestHandler):
             errNum = ERR_NUM_SET_VOLUME_FAILED
             
         self.write(ResponseJSONEncoder().encode(response))
-              
+
+class Search(tornado.web.RequestHandler):
+    def get(self, searchterm):
+        response = Response()
+        try:
+            response.data = RadioBrowser.search(searchterm);
+        except Exception, err:
+            print "Search failed: " +  str(err)
+            err_msg = str(err)
+            errNum = ERR_NUM_SEARCH_FAILED
+            
+        self.write(ResponseJSONEncoder().encode(response))
+        
+        
+
+class PlaySearch(tornado.web.RequestHandler):
+    def post(self):
+        id = self.get_argument("id");
+        response = Response()
+        print 'Play radio from search: ' + str(id)
+        try:
+            radio = RadioBrowser.byid(id);
+            print 'Play radio from search: ' + radio.display_name
+                
+            if radio == None:
+                response.err_num = ERR_NUM_RADIO_STATION_ID_DOES_NOT_EXIST
+                response.err_msg = ERR_MSG_RADIO_STATION_ID_DOES_NOT_EXIST
+            else:           
+                print 'Play ' + radio.display_name
+                Mplayer.start(radio)
+                
+        except Exception, err:
+            print "PlaySearch failed: " +  str(err)
+            err_msg = str(err)
+            errNum = ERR_NUM_PLAY_RADIO_STATION_FAILED
+            
+        self.write(ResponseJSONEncoder().encode(response))
+        
 if __name__ == "__main__":
     pass

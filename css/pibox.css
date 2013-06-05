@@ -1,4 +1,4 @@
-html {
+html  {
 	background-color: black;
 	color: gray;
 	font-size: 7mm;
@@ -21,7 +21,7 @@ html {
 	font-size: 19;
 	font-weight: bold;	
 }
-
+	
 .favorite-list, .playlist {
 	width: 100%;
 	display: table;	
@@ -114,6 +114,14 @@ html {
 	margin-top:auto;
 	margin-bottom:auto;
 }
+
+#input-search {
+	background-color: #303030;
+	color: white;
+	font-size: 7mm;
+	border-color: gray;
+	border-style: solid;
+}
 .ui-icon {
 	width: 48px;
 	height: 48px;
@@ -153,3 +161,4 @@ html {
 .ui-icon-star {	background-position: -576px 0px; }
 .ui-icon-volume-off { background-position: -384px 0px; }
 .ui-icon-volume-on { background-position: -432px 0px; }
+.ui-icon-search { background-position: -480px 0px; }
