@@ -43,19 +43,27 @@
 			
 			<div class="playlist-container">
 				<div class="playlist" data-bind="template: {name : 'playlistTemplate', foreach : player_state.playlist}"></div>
-			</div>
-			
+			</div>			
 		</div>
+		
+		<div class="list-container">
+			<div class="list">
+				<div class="list-text">
+					<input id="input-search" type="text"/>
+				</div>
+				<div class="list-buttons">
+					<button id="button-search" data-bind="button:{}, buttonOptions :{ icons:{primary : 'ui-icon-search'}, text : false}, click : search ">Search</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="list-container" data-bind="style : {display : search_radios().length > 0 ? 'block' : 'none' }">
+			<div class="list" data-bind="template: {name : 'searchTemplate', foreach : search_radios}"></div>
+		</div>
+		
 		<div class="divider">Favorites</div>
 		<div class="favorite-list-container">
 			<div class="favorite-list" data-bind="template: {name : 'favoritTemplate', foreach : favorites.radios}"></div>
-		</div>
-		<div class="divider">
-			<input id="input-search" type="text"/>
-			<button id="button-search" data-bind="button:{}, buttonOptions :{ icons:{primary : 'ui-icon-search'}, text : false}, click : search ">Search</button>
-		</div>
-		<div class="favorite-list-container">
-			<div class="favorite-list" data-bind="template: {name : 'favoritTemplate', foreach : search_radios}"></div>
 		</div>
 
 		<div id="reload-dialog" title="Error" style="display: none">
@@ -86,6 +94,22 @@
 		</div>
 	</script>	
 	
+	<script type="text/html" id="searchTemplate">
+		<div class="favorite-row" data-bind="css : { 'favorite-row-playing' : is_playing() }">
+			<div class="favorite-controls" >
+				<span class="ui-icon ui-icon-dark-star"></span>
+			</div>
+			<div class="favorite-display-name"  >
+				<span data-bind="text: display_name"></span>
+			</div>
+			<div class="favorite-controls" >
+				<button data-bind="button:{},  buttonOptions :{ icons:{primary : 'ui-icon-play'}, text : false}, click : play, disable : is_playing">
+					Play
+				</button>
+			</div>
+		</div>
+	</script>	
+	
 	
 	<script type="text/javascript">
 			
@@ -99,6 +123,12 @@
 				});
 			}
 		};		
+		
+		$("#input-search").keyup(function(event){
+			if(event.keyCode == 13){
+				$("#button-search").click();
+			}
+		});		
 		
 		ko.bindingHandlers.slider = {
 		  init: function (element, valueAccessor, allBindingsAccessor) {
@@ -223,6 +253,7 @@
 			updateRequestStart : Date(),
 			search_radios : ko.observableArray(),
 			search : function() {
+					$("#button-search").attr("disabled", "disabled");
 					$.ajax( 
 						{
 							url : '/search/'+ encodeURIComponent($('input[id="input-search"]').val()),
@@ -230,6 +261,10 @@
 							dataType : 'json',
 							success: function(data) {
 								ko.mapping.fromJS(data.data, searchMapping, viewModel.search_radios);
+								$("#button-search").removeAttr("disabled");
+							},
+							error: function() {
+								$("#button-search").removeAttr("disabled");
 							}
 						}
 					);

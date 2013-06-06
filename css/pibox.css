@@ -22,12 +22,12 @@ html  {
 	font-weight: bold;	
 }
 	
-.favorite-list, .playlist {
+.favorite-list, .playlist, .list {
 	width: 100%;
 	display: table;	
 }
 
-.playlist-container, .favorite-list-container, #playing-display-name {
+.playlist-container, .favorite-list-container, #playing-display-name, .list-container {
 	background-color: #303030;
 	border-radius: 6px;
 	padding: 0.25em;
@@ -40,7 +40,7 @@ html  {
 #playing-display-name {
 }
 
-.favorite-row, .favorite-row-playing , .playlist-row {
+.favorite-row, .favorite-row-playing , .playlist-row , .list-row{
 	width: 100%;
 	display: table-row;	
 	border-color: black;
@@ -51,20 +51,20 @@ html  {
 	color: white;
 }
 
-.favorite-controls, .playlist-timestamp, .global-buttons {
+.favorite-controls, .playlist-timestamp, .global-buttons, .list-buttons {
 	padding: 0.2em;
 	display: table-cell;	
 	vertical-align: middle;
 }
 
-.favorite-display-name, .playlist-title{
+.favorite-display-name, .playlist-title, .list-text{
 	padding: 0.2em;
 	display: table-cell;
-	width: 100%
+	width: 100%;
+	vertical-align: middle;
 }
 
 .favorite-display-name {
-	vertical-align: middle;
 }
 
 
@@ -118,9 +118,9 @@ html  {
 #input-search {
 	background-color: #303030;
 	color: white;
-	font-size: 7mm;
-	border-color: gray;
-	border-style: solid;
+	font-size: 9mm;
+	border-style: none;
+	width: 100%;
 }
 .ui-icon {
 	width: 48px;
@@ -159,6 +159,7 @@ html  {
 .ui-icon-play { 	background-position: -96px 0px; }
 .ui-icon-stop { background-position: -144px 0px; }
 .ui-icon-star {	background-position: -576px 0px; }
+.ui-icon-dark-star {	background-position: -528px 0px; }
 .ui-icon-volume-off { background-position: -384px 0px; }
 .ui-icon-volume-on { background-position: -432px 0px; }
 .ui-icon-search { background-position: -480px 0px; }
