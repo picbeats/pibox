@@ -59,7 +59,10 @@ if __name__ == "__main__":
         try:
             application.listen(options.port)
         except:
-            application.listen(options.port, '0.0.0.0')
+            try: 
+                application.listen(options.port, '0.0.0.0')
+            except:
+                 print "Unexpected error:", sys.exc_info()[0]
             
         tornado.ioloop.IOLoop.instance().start()    
     else:
@@ -78,6 +81,9 @@ if __name__ == "__main__":
             try:
                 application.listen(options.port)
             except:
-                application.listen(options.port, '0.0.0.0')
+                try: 
+                    application.listen(options.port, '0.0.0.0')
+                except:
+                     print "Unexpected error:", sys.exc_info()[0]
                 
             tornado.ioloop.IOLoop.instance().start()
