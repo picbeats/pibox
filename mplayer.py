@@ -15,7 +15,7 @@ class MplayerProcess():
         self.read_thread = None
         
     def start(self):
-        arguments = ['mplayer', '-quiet', '-slave']
+        arguments = ['mplayer', '-quiet', '-slave','-cache','128']
         uri = self.radio.stream_url
         uril = uri.lower()
         if (uril.endswith('.m3u') or uril.endswith('.pls')):
