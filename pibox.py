@@ -52,7 +52,7 @@ if __name__ == "__main__":
         (r"/stopradio", StopRadio),
         (r"/search/(.*)", Search),
         (r"/playsearch", PlaySearch),
-        
+        (r"/addfavorite", AddFavorite),
     ])
     
     if options.fg == 1:

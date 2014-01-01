@@ -89,9 +89,15 @@ class Favorites(RevisionLock):
         path = os.path.dirname(os.path.realpath(__file__))
         with open(path + '/favorites.csv', 'rb') as csvfile:
             radioreader = csv.reader(csvfile, delimiter=';', quotechar='\"')            
-            count = 0
             for row in radioreader:
                 self.radios.append(Radio(row[0], row[1], row[2]))
+
+    def save_radios(self): 
+        path = os.path.dirname(os.path.realpath(__file__))
+        with open(path + '/favorites.csv', 'wb') as csvfile:
+            radiowriter = csv.writer(csvfile, delimiter=';', quotechar='\"')            
+            for radio in self.radios:
+                radiowriter.writerow([radio.id, radio.display_name, radio.stream_url])
                 
     def get_favorite(self, id):
         self.lock.acquire()
@@ -102,13 +108,22 @@ class Favorites(RevisionLock):
             return None
         finally:
             self.lock.release()
+            
+    def add_favorite(self, radio):
+        self.lock.acquire()
+        try:
+            self.radios.append(radio)
+            self.save_radios()
+            self.update_revision()
+        finally:
+            self.lock.release()                
     
     def as_model(self):
         self.lock.acquire()
         try:
             result = Revision.as_model(self)
             result['radios'] = copy.deepcopy(self.radios)
-            return result;
+            return result
         finally:
             self.lock.release()
             

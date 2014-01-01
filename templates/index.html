@@ -96,8 +96,11 @@
 	
 	<script type="text/html" id="searchTemplate">
 		<div class="favorite-row" data-bind="css : { 'favorite-row-playing' : is_playing() }">
-			<div class="favorite-controls" >
-				<span class="ui-icon ui-icon-dark-star"></span>
+			<button data-bind="button:{},  buttonOptions :{ icons:{primary : 'ui-icon-star'}, text : false}, click : add_favorite, disable : is_favorite, visible : !is_favorite()">
+				Add Favorite
+			</button>			
+			<div class="favorite-controls" data-bind="visible : is_favorite" >
+				<span class="ui-icon ui-icon-star"></span>
 			</div>
 			<div class="favorite-display-name"  >
 				<span data-bind="text: display_name"></span>
@@ -270,49 +273,81 @@
 					);
 			}
 		};		
+		
 			
 		var Radio = function(radio) {
 			ko.mapping.fromJS(radio, {}, this);
-			
-			this.play = function (model, args) {
-				$(args.currentTarget).removeClass("ui-state-hover");
-				$.ajax( 
-					{
-						url : '/playradio',
-						data : { id : this.id() },
-						type : 'post', 
-						dataType : 'json'
-					}
-				);
-			}
-			
-			this.is_playing = ko.computed(function() {
-				return this.id() === viewModel.player_state.id()
-			}, this);
+			this.is_playing = ko.computed(this.is_playing_eval, this);
 		}
+		
+		Radio.prototype.play = function (model, args) {
+			$(args.currentTarget).removeClass("ui-state-hover");
+			$.ajax( 
+				{
+					url : '/playradio',
+					data : { id : this.id() },
+					type : 'post', 
+					dataType : 'json'
+				}
+			);
+		}
+		
+		Radio.prototype.is_playing_eval = function() {
+			if (typeof this.id === "undefined") {
+				return false;
+			}
+		
+			return this.id() === viewModel.player_state.id()
+		};
 		
 		
 		var SearchRadio = function(radio) {
+			// Radio.apply(this, radio);
 			ko.mapping.fromJS(radio, {}, this);
-			
-			this.play = function (model, args) {
-				$(args.currentTarget).removeClass("ui-state-hover");
-				$.ajax( 
-					{
-						url : '/playsearch',
-						data : { id : this.id() },
-						type : 'post', 
-						dataType : 'json'
-					}
-				);
-			}
-			
-			this.is_playing = ko.computed(function() {
-				return this.id() === viewModel.player_state.id()
-			}, this);
+			is_favorite = ko.computed(this.is_favorite_eval, this);
 		}
 		
-				
+		SearchRadio.prototype = new Radio();
+		
+		SearchRadio.prototype.play = function (model, args) {
+			$(args.currentTarget).removeClass("ui-state-hover");
+			$.ajax( 
+				{
+					url : '/playsearch',
+					data : { id : this.id() },
+					type : 'post', 
+					dataType : 'json'
+				}
+			);
+		}
+			
+		SearchRadio.prototype.add_favorite = function (model, args) {
+			$(args.currentTarget).removeClass("ui-state-hover");
+			$.ajax( 
+				{
+					url : '/addfavorite',
+					data : { id : this.id() },
+					type : 'post', 
+					dataType : 'json'
+				}
+			);
+		}
+
+		SearchRadio.prototype.is_favorite_eval = function() {
+			var id = this.id;
+			
+			if (typeof id === "undefined") {
+				return false;
+			}
+			
+			for(var i = 0; i < viewModel.favorites.radios().length; i++) {
+				if(viewModel.favorites.radios()[i].id() == id()) {
+					return true;
+				}	
+			}
+			
+			return false;
+		}
 		
 		
 		function updateState() {

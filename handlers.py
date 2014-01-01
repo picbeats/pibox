@@ -182,6 +182,28 @@ class PlaySearch(tornado.web.RequestHandler):
             errNum = ERR_NUM_PLAY_RADIO_STATION_FAILED
             
         self.write(ResponseJSONEncoder().encode(response))
+
+class AddFavorite(tornado.web.RequestHandler):
+    def post(self):
+        id = self.get_argument("id");
+        response = Response()
+        print 'Add radio to favorites: ' + str(id)
+        try:
+            radio = RadioBrowser.byid(id);
+            print 'Add radio to favorites: ' + radio.display_name
+                
+            if radio == None:
+                response.err_num = ERR_NUM_RADIO_STATION_ID_DOES_NOT_EXIST
+                response.err_msg = ERR_MSG_RADIO_STATION_ID_DOES_NOT_EXIST
+            else:           
+                state.favorites.add_favorite(radio)
+                
+        except Exception, err:
+            print "PlaySearch failed: " +  str(err)
+            err_msg = str(err)
+            errNum = ERR_NUM_PLAY_RADIO_STATION_FAILED
+            
+        self.write(ResponseJSONEncoder().encode(response))
         
 if __name__ == "__main__":
     pass
