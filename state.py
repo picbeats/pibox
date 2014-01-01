@@ -161,24 +161,31 @@ class PlayerState(RevisionLock) :
 class MixerState(RevisionLock):
     def __init__(self):
         RevisionLock.__init__(self)
-        self.volume = self.get_volume()
+        self.name, self.volume = self.get_volume()
         
     def get_volume(self):
         p = subprocess.Popen(['amixer'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        name = ""
         volume = ""
         while(True):
-            retcode = p.poll() #returns None while subprocess is running
+            #retcode = p.poll() #returns None while subprocess is running
             line = p.stdout.readline()
             
-            if volume == "" and  line.find("Front Left:") != -1:
-                print line
-                volume = re.search('\[([0-9]+)%\]',line).group(1)
+            if line == None or line == "":
+                break           
             
-            if retcode is not None:
-                break
+            if name == "" and line.find("Simple mixer control") != -1:
+                name = re.search("('[^']+')",line).group(1)
+            elif volume == "" and line.find("Front Left:") != -1:
+                volume = re.search('\[([0-9]+)%\]',line).group(1)
+                
+        if name == "":
+            name = "Headphone"
+            
+        print 'Name: ' + name + ', Volume: ' + volume
         
-        return int(volume)
-
+        return name, int(volume)
+        
     def set_volume(self, revision, volume):
         self.lock.acquire()
         try:
@@ -186,7 +193,7 @@ class MixerState(RevisionLock):
                 return;
             
             if self.volume != volume:
-                subprocess.call(['amixer', 'set', 'Speaker', '--', str(volume) + '%']) #USER CALL
+                subprocess.call(['amixer', 'set', self.name, '--', str(volume) + '%']) #USER CALL
                 subprocess.call(['sudo', 'alsactl', 'store']) #ROOT CALL
                 #subprocess.call(['amixer', 'cset', 'numid=3', '--', volume])            
                 
